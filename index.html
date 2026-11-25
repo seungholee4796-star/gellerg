@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GALAGA DX - RETRO ARCADE EDITION</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* =========================================================
+           RETRO ARCADE CABINET & CRT DISPLAY STYLING
+           ========================================================= */
+        :root {
+            --cabinet-bg: #12131a;
+            --neon-red: #ff2a55;
+            --neon-cyan: #00f0ff;
+            --neon-yellow: #ffd500;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #07080c;
+            background-image: radial-gradient(circle at 50% 25%, #192038 0%, #07080c 78%);
+            color: #ffffff;
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            padding: 10px;
+        }
+
+        /* Arcade Cabinet Frame */
+        .arcade-cabinet {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 520px;
+            height: 96vh;
+            max-height: 880px;
+            background: linear-gradient(180deg, #24283b 0%, #141622 100%);
+            border: 4px solid #383d54;
+            border-radius: 22px;
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.9),
+                inset 0 2px 5px rgba(255, 255, 255, 0.16);
+            padding: 12px 14px 14px 14px;
+            position: relative;
+        }
+
+        /* Top Marquee Header */
+        .marquee-header {
+            width: 100%;
+            background: linear-gradient(90deg, #0b0d17 0%, #1e153b 50%, #0b0d17 100%);
+            border: 2px solid #484e6e;
+            border-radius: 12px;
+            padding: 9px 14px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 18px rgba(0, 240, 255, 0.22);
+        }
+
+        .marquee-title {
+            font-size: clamp(13px, 3.6vw, 18px);
+            background: linear-gradient(180deg, #ffffff 0%, #00f0ff 52%, #ff2a55 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hud-pill {
+            background: #23273a;
+            color: #9ba6cc;
+            border: 2px solid #4c5373;
+            border-radius: 8px;
+            padding: 5px 8px;
+            font-size: 9px;
+            letter-spacing: 0.5px;
+        }
+
+        .hud-pill.active {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+        }
+
+        .hud-pill.paused {
+            border-color: var(--neon-yellow);
+            color: var(--neon-yellow);
+            box-shadow: 0 0 10px rgba(255, 213, 0, 0.4);
+        }
+
+        /* CRT Monitor Bezel & Game Screen */
+        .crt-bezel {
+            position: relative;
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            background: #040508;
+            border: 6px solid #0f1119;
+            border-radius: 16px;
+            box-shadow:
+                inset 0 0 30px rgba(0, 0, 0, 0.98),
+                0 0 0 2px #3e445e;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        /* Subtle CRT Scanlines Overlay */
+        .crt-scanlines {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.24) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* Bottom Keyboard Legend Status Bar */
+        .keyboard-legend-bar {
+            width: 100%;
+            margin-top: 10px;
+            background: linear-gradient(180deg, #1d2030 0%, #12141f 100%);
+            border: 2px solid #363c54;
+            border-radius: 12px;
+            padding: 9px 10px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 8px 12px;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.06);
+            font-size: 8px;
+            color: #c2cceb;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .legend-key {
+            color: var(--neon-yellow);
+            background: #292e42;
+            border: 1px solid #565f82;
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 2px 5px;
+        }
+
+        .legend-sep {
+            color: #4a5270;
+        }
+
+        @media (max-width: 480px) {
+            .arcade-cabinet {
+                padding: 8px;
+                border-radius: 14px;
+            }
+            .keyboard-legend-bar {
+                font-size: 7px;
+                padding: 7px 6px;
+                gap: 5px 6px;
+            }
+            .legend-sep {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="arcade-cabinet">
+    <!-- Top Marquee Header -->
+    <div class="marquee-header">
+        <div class="marquee-title">GALAGA DX</div>
+        <div class="header-status">
+            <div id="hudPauseStatus" class="hud-pill">RUN</div>
+            <div id="hudSfxStatus" class="hud-pill active">SFX:ON</div>
+        </div>
+    </div>
+
+    <!-- CRT Monitor Screen -->
+    <div class="crt-bezel">
+        <canvas id="gameCanvas"></canvas>
+        <div class="crt-scanlines"></div>
+    </div>
+
+    <!-- Bottom Keyboard Controls Legend -->
+    <div class="keyboard-legend-bar">
+        <span class="legend-item"><span class="legend-key">[←↑↓→ / WASD]</span> MOVE</span>
+        <span class="legend-sep">|</span>
+        <span class="legend-item"><span class="legend-key">[SPACE / Z]</span> FIRE (HOLD)</span>
+        <span class="legend-sep">|</span>
+        <span class="legend-item"><span class="legend-key">[P]</span> PAUSE</span>
+        <span class="legend-sep">|</span>
+        <span class="legend-item"><span class="legend-key">[M]</span> SOUND</span>
+    </div>
+</div>
+
+<script>
+/**
+ * ============================================================================
+ * 1. 8-BIT WEB AUDIO SYNTHESIZER SOUND ENGINE
+ *    Generates authentic retro arcade sound effects & melodies procedurally.
+ * ============================================================================
+ */
+class RetroSoundEngine {
+    constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.masterGain = null;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioCtx();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.value = 0.28;
+            this.masterGain.connect(this.ctx.destination);
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+    }
+
+    playTone(freq, type, duration, startTimeOffset = 0, slideToFreq = null, volume = 0.5) {
+        if (!this.enabled) return;
+        this.init();
+        const now = this.ctx.currentTime + startTimeOffset;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        if (slideToFreq) {
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideToFreq), now + duration);
+        }
+
+        gain.gain.setValueAtTime(volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(now);
+        osc.stop(now + duration);
+    }
+
+    playNoise(duration, volume = 0.6, filterFreq = 900) {
+        if (!this.enabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(filterFreq, now);
+        filter.frequency.exponentialRampToValueAtTime(110, now + duration);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+
+        noise.start(now);
+        noise.stop(now + duration);
+    }
+
+    // Crisp laser fire (richer dual-tone when Dual Fighter is active)
+    playLaser(isDual = false) {
+        this.playTone(1350, 'square', 0.085, 0, 290, 0.34);
+        if (isDual) {
+            this.playTone(1720, 'triangle', 0.095, 0.012, 360, 0.32);
+        }
+    }
+
+    // Enemy dive swoop whistle
+    playDive() {
+        this.playTone(680, 'triangle', 0.28, 0, 210, 0.22);
+    }
+
+    // Boss Galaga armor hit metallic ping
+    playBossHit() {
+        this.playTone(340, 'square', 0.07, 0, 560, 0.42);
+        this.playTone(720, 'sawtooth', 0.09, 0.03, 980, 0.36);
+    }
+
+    // Multi-layered retro explosion
+    playExplosion(large = false) {
+        this.playNoise(large ? 0.55 : 0.24, large ? 0.85 : 0.5, large ? 760 : 1200);
+        this.playTone(large ? 130 : 210, 'sawtooth', large ? 0.42 : 0.18, 0, 32, 0.48);
+        if (large) {
+            this.playTone(88, 'square', 0.48, 0.05, 24, 0.4);
+        }
+    }
+
+    // Tractor beam warble
+    playTractorBeam() {
+        for (let i = 0; i < 6; i++) {
+            this.playTone(300 + (i % 2) * 140, 'sine', 0.07, i * 0.06, 250, 0.26);
+        }
+    }
+
+    // Captured fighter rescue chime
+    playRescue() {
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+        notes.forEach((n, idx) => {
+            this.playTone(n, 'square', 0.11, idx * 0.065, null, 0.36);
+        });
+    }
+
+    // Classic Galaga-style stage start fanfare jingle
+    playStageStart() {
+        const melody = [
+            { f: 392.00, d: 0.11, t: 0.00 }, // G4
+            { f: 523.25, d: 0.11, t: 0.12 }, // C5
+            { f: 659.25, d: 0.11, t: 0.24 }, // E5
+            { f: 783.99, d: 0.18, t: 0.36 }, // G5
+            { f: 659.25, d: 0.11, t: 0.56 }, // E5
+            { f: 1046.50, d: 0.34, t: 0.68 } // C6
+        ];
+        melody.forEach(m => {
+            this.playTone(m.f, 'square', m.d, m.t, null, 0.35);
+            this.playTone(m.f * 0.5, 'triangle', m.d, m.t, null, 0.25);
+        });
+    }
+
+    // Stage 10+ Hardcore Mode alert siren
+    playHardcoreAlert() {
+        for (let i = 0; i < 4; i++) {
+            this.playTone(440, 'sawtooth', 0.15, i * 0.28, 920, 0.42);
+            this.playTone(920, 'sawtooth', 0.13, i * 0.28 + 0.15, 440, 0.38);
+        }
+    }
+
+    // Extra life 1UP fanfare
+    playExtraLife() {
+        const notes = [659.25, 783.99, 1318.51, 1046.50, 1174.66, 1567.98];
+        notes.forEach((f, i) => {
+            this.playTone(f, 'square', 0.1, i * 0.08, null, 0.38);
+        });
+    }
+
+    // Game Over descending jingle
+    playGameOver() {
+        const notes = [392.00, 369.99, 349.23, 329.63, 261.63];
+        notes.forEach((f, i) => {
+            this.playTone(f, 'sawtooth', i === 4 ? 0.52 : 0.16, i * 0.17, i === 4 ? 130 : null, 0.36);
+        });
+    }
+}
+
+/**
+ * ============================================================================
+ * 2. PIXEL-ART SPRITE MATRICES & CANVAS 2D RENDERER
+ * ============================================================================
+ */
+const SPRITES = {
+    player: [
+        "0000001000000",
+        "0000001000000",
+        "0000011100000",
+        "0000012100000",
+        "0010012100100",
+        "0010111110100",
+        "0030114110300",
+        "1011114111101",
+        "1011311131101",
+        "1113311133111",
+        "1111110111111",
+        "1010010100101",
+        "0000030300000"
+    ],
+    bee1: [
+        "0001000001000",
+        "0000100010000",
+        "0001111111000",
+        "0011211121100",
+        "0111111111110",
+        "1131111111311",
+        "1031333331301",
+        "0001100011000",
+        "0011000001100"
+    ],
+    bee2: [
+        "0001000001000",
+        "0000100010000",
+        "0001111111000",
+        "0011211121100",
+        "0111111111110",
+        "0131111111310",
+        "0031333331300",
+        "0000110110000",
+        "0001100011000"
+    ],
+    butterfly1: [
+        "0010000000100",
+        "0111001001110",
+        "1131111111311",
+        "1333121213331",
+        "1131111111311",
+        "0111133311110",
+        "0011111111100",
+        "0110010100110",
+        "1100000000011"
+    ],
+    butterfly2: [
+        "0001000001000",
+        "0011001001100",
+        "0131111111310",
+        "0333121213330",
+        "0131111111310",
+        "0011133311100",
+        "0001111111000",
+        "0011010101100",
+        "0110000000110"
+    ],
+    boss1: [
+        "0000110110000",
+        "0001111111000",
+        "0011221221100",
+        "0111111111110",
+        "1131111111311",
+        "1133133313311",
+        "1011111111101",
+        "1010110110101",
+        "0001100011000",
+        "0011000001100"
+    ],
+    boss2: [
+        "0000110110000",
+        "0001111111000",
+        "0011221221100",
+        "0111111111110",
+        "1131111111311",
+        "1133133313311",
+        "0111111111110",
+        "0101100011010",
+        "0011000001100",
+        "0110000000110"
+    ]
+};
+
+const PALETTES = {
+    player: { '1': '#ffffff', '2': '#00f0ff', '3': '#ff2a55', '4': '#3b82f6' },
+    capturedPlayer: { '1': '#ff6b8b', '2': '#ffd500', '3': '#ff1744', '4': '#b91c1c' },
+    bee: { '1': '#ffd500', '2': '#ff2a55', '3': '#38bdf8' },
+    butterfly: { '1': '#ff2a55', '2': '#ffffff', '3': '#38bdf8' },
+    bossGreen: { '1': '#22c55e', '2': '#ff2a55', '3': '#ffd500' },
+    bossBlue: { '1': '#3b82f6', '2': '#ff2a55', '3': '#00f0ff' }
+};
+
+function drawPixelSprite(ctx, matrix, palette, cx, cy, scale, angle = 0) {
+    const rows = matrix.length;
+    const cols = matrix[0].length;
+    const w = cols * scale;
+    const h = rows * scale;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (angle !== 0) ctx.rotate(angle);
+
+    const startX = -w / 2;
+    const startY = -h / 2;
+
+    for (let r = 0; r < rows; r++) {
+        const rowStr = matrix[r];
+        for (let c = 0; c < cols; c++) {
+            const ch = rowStr[c];
+            if (ch !== '0' && palette[ch]) {
+                ctx.fillStyle = palette[ch];
+                ctx.fillRect(
+                    Math.floor(startX + c * scale),
+                    Math.floor(startY + r * scale),
+                    Math.ceil(scale),
+                    Math.ceil(scale)
+                );
+            }
+        }
+    }
+    ctx.restore();
+}
+
+/**
+ * ============================================================================
+ * 3. MAIN GALAGA GAME ENGINE
+ * ============================================================================
+ */
+class GalagaGame {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.audio = new RetroSoundEngine();
+
+        // Logical Arcade Resolution (3:4 portrait aspect ratio)
+        this.width = 450;
+        this.height = 600;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+
+        // Game States: 'START', 'STAGE_INTRO', 'PLAYING', 'PAUSED', 'GAME_OVER'
+        this.state = 'START';
+        this.score = 0;
+        this.highScore = parseInt(localStorage.getItem('galaga_dx_highscore') || '10000', 10);
+        this.stage = 1;
+        this.lives = 3;
+        this.nextExtraLifeScore = 20000;
+
+        // Timers & Animation Trackers
+        this.stateTimer = 0;
+        this.globalTick = 0;
+        this.formationTick = 0;
+        this.diveCooldown = 1.5;
+        this.screenShake = 0;
+
+        // Pure Keyboard Input State
+        this.keys = {};
+
+        // Player State
+        this.player = {
+            x: this.width / 2,
+            y: this.height - 54,
+            speed: 255,
+            radius: 14,
+            isDual: false,
+            invulnTimer: 0,
+            fireCooldown: 0,
+            captured: false
+        };
+
+        // Entity Collections
+        this.bullets = [];
+        this.enemyBullets = [];
+        this.enemies = [];
+        this.particles = [];
+        this.floatingTexts = [];
+        this.stars = [];
+        this.capturedShip = null;
+
+        this.initStars();
+        this.bindKeyboardEvents();
+        this.updateHeaderBadges();
+
+        this.lastTime = performance.now();
+        requestAnimationFrame((t) => this.loop(t));
+    }
+
+    initStars() {
+        this.stars = [];
+        const colors = ['#ffffff', '#93c5fd', '#fde047', '#f472b6', '#67e8f9'];
+        for (let i = 0; i < 80; i++) {
+            this.stars.push({
+                x: Math.random() * this.width,
+                y: Math.random() * this.height,
+                size: Math.random() < 0.7 ? 1.5 : 2.5,
+                speed: 25 + Math.random() * 85,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                blinkOffset: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    bindKeyboardEvents() {
+        window.addEventListener('keydown', (e) => {
+            // Prevent default browser scrolling on Arrow keys & Spacebar
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+
+            const wasDown = !!this.keys[e.code];
+            this.keys[e.code] = true;
+
+            // Ignore OS key-repeat for single-trigger actions
+            if (wasDown) return;
+
+            if (e.code === 'Space' || e.code === 'Enter') {
+                if (this.state === 'START' || this.state === 'GAME_OVER') {
+                    this.audio.init();
+                    this.startNewGame();
+                }
+            } else if (e.code === 'KeyP') {
+                this.togglePause();
+            } else if (e.code === 'KeyM') {
+                this.toggleSound();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            this.keys[e.code] = false;
+        });
+    }
+
+    togglePause() {
+        if (this.state === 'PLAYING') {
+            this.state = 'PAUSED';
+        } else if (this.state === 'PAUSED') {
+            this.state = 'PLAYING';
+        }
+        this.updateHeaderBadges();
+    }
+
+    toggleSound() {
+        this.audio.toggle();
+        this.updateHeaderBadges();
+    }
+
+    updateHeaderBadges() {
+        const sfxEl = document.getElementById('hudSfxStatus');
+        const pauseEl = document.getElementById('hudPauseStatus');
+
+        if (sfxEl) {
+            sfxEl.textContent = this.audio.enabled ? 'SFX:ON' : 'SFX:OFF';
+            sfxEl.classList.toggle('active', this.audio.enabled);
+        }
+        if (pauseEl) {
+            const isPaused = this.state === 'PAUSED';
+            pauseEl.textContent = isPaused ? 'PAUSED' : 'ACTIVE';
+            pauseEl.classList.toggle('paused', isPaused);
+            pauseEl.classList.toggle('active', !isPaused && this.state === 'PLAYING');
+        }
+    }
+
+    startNewGame() {
+        this.score = 0;
+        this.stage = 1;
+        this.lives = 3;
+        this.nextExtraLifeScore = 20000;
+        this.player.isDual = false;
+        this.player.captured = false;
+        this.capturedShip = null;
+        this.resetPlayerPosition();
+        this.setupStage(this.stage);
+    }
+
+    resetPlayerPosition() {
+        this.player.x = this.width / 2;
+        this.player.y = this.height - 54;
+        this.player.invulnTimer = 2.0;
+        this.player.captured = false;
+    }
+
+    /**
+     * Setup Stage 1 to 10+
+     * Stage 10+ activates Hardcore / Hell Mode with alert siren & crimson tint.
+     */
+    setupStage(stageNum) {
+        this.stage = stageNum;
+        this.state = 'STAGE_INTRO';
+        this.stateTimer = stageNum >= 10 ? 2.6 : 2.0;
+        this.bullets = [];
+        this.enemyBullets = [];
+        this.enemies = [];
+        this.updateHeaderBadges();
+
+        if (stageNum >= 10) {
+            this.audio.playHardcoreAlert();
+        } else {
+            this.audio.playStageStart();
+        }
+
+        // Build Classic Galaga Formation (5 Rows)
+        const cols = 10;
+        const spacingX = 36;
+        const startX = (this.width - (cols - 1) * spacingX) / 2;
+        const startY = 78;
+        const rowSpacing = 33;
+
+        // Row 0: 4 Boss Galagas
+        for (let c = 3; c <= 6; c++) {
+            this.spawnEnemy('boss', startX + c * spacingX, startY, 0, c);
+        }
+        // Rows 1 & 2: Butterflies
+        for (let r = 1; r <= 2; r++) {
+            for (let c = 1; c <= 8; c++) {
+                this.spawnEnemy('butterfly', startX + c * spacingX, startY + r * rowSpacing, r, c);
+            }
+        }
+        // Rows 3 & 4: Bees
+        for (let r = 3; r <= 4; r++) {
+            for (let c = 0; c < cols; c++) {
+                this.spawnEnemy('bee', startX + c * spacingX, startY + r * rowSpacing, r, c);
+            }
+        }
+    }
+
+    spawnEnemy(type, homeX, homeY, row, col) {
+        const entrySide = (col < 5) ? -1 : 1;
+        this.enemies.push({
+            type,
+            hp: type === 'boss' ? 2 : 1,
+            maxHp: type === 'boss' ? 2 : 1,
+            homeX,
+            homeY,
+            x: this.width / 2 + entrySide * 250,
+            y: -45 - row * 28 - Math.abs(col - 4.5) * 14,
+            angle: 0,
+            mode: 'ENTERING', // 'ENTERING', 'FORMATION', 'DIVING', 'BEAMING', 'RETURNING'
+            diveT: 0,
+            diveStartX: 0,
+            diveStartY: 0,
+            diveTargetX: 0,
+            diveCurveDir: 1,
+            hasShot: false,
+            shotCount: 0,
+            beamTimer: 0,
+            hasCapturedShip: false,
+            radius: type === 'boss' ? 14 : 12
+        });
+    }
+
+    addScore(points, popupX = null, popupY = null, color = '#ffd500') {
+        this.score += points;
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            localStorage.setItem('galaga_dx_highscore', String(this.highScore));
+        }
+        if (this.score >= this.nextExtraLifeScore) {
+            this.lives++;
+            this.nextExtraLifeScore += 30000;
+            this.audio.playExtraLife();
+            this.addFloatingText('1UP!', this.player.x, this.player.y - 26, '#00f0ff');
+        }
+        if (popupX !== null && popupY !== null) {
+            this.addFloatingText(String(points), popupX, popupY, color);
+        }
+    }
+
+    addFloatingText(text, x, y, color = '#ffffff') {
+        this.floatingTexts.push({
+            text,
+            x,
+            y,
+            color,
+            life: 0.9
+        });
+    }
+
+    spawnExplosion(x, y, baseColor = '#ff2a55', count = 18) {
+        const colors = [baseColor, '#ffd500', '#ffffff', '#ff6b00'];
+        for (let i = 0; i < count; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 45 + Math.random() * 190;
+            this.particles.push({
+                x,
+                y,
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd,
+                size: 2 + Math.random() * 3.5,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                life: 0.35 + Math.random() * 0.35,
+                maxLife: 0.7
+            });
+        }
+    }
+
+    getMovementVector() {
+        let vx = 0;
+        let vy = 0;
+
+        if (this.keys['ArrowLeft'] || this.keys['KeyA']) vx -= 1;
+        if (this.keys['ArrowRight'] || this.keys['KeyD']) vx += 1;
+        if (this.keys['ArrowUp'] || this.keys['KeyW']) vy -= 1;
+        if (this.keys['ArrowDown'] || this.keys['KeyS']) vy += 1;
+
+        // Normalize diagonal movement
+        const mag = Math.hypot(vx, vy);
+        if (mag > 1) {
+            vx /= mag;
+            vy /= mag;
+        }
+        return { vx, vy };
+    }
+
+    firePlayerWeapon() {
+        const maxBullets = this.player.isDual ? 8 : 4;
+        if (this.bullets.length >= maxBullets) return;
+
+        this.player.fireCooldown = 0.16;
+        this.audio.playLaser(this.player.isDual);
+
+        if (this.player.isDual) {
+            this.bullets.push({ x: this.player.x - 13, y: this.player.y - 16, vy: -560 });
+            this.bullets.push({ x: this.player.x + 13, y: this.player.y - 16, vy: -560 });
+        } else {
+            this.bullets.push({ x: this.player.x, y: this.player.y - 18, vy: -560 });
+        }
+    }
+
+    /**
+     * ========================================================================
+     * 4. MAIN UPDATE LOOP
+     * ========================================================================
+     */
+    update(dt) {
+        this.globalTick += dt;
+
+        // Parallax starfield scrolling (faster in Stage 10+ Hardcore Mode)
+        const starSpeedMult = this.stage >= 10 ? 1.85 : 1.0;
+        for (const s of this.stars) {
+            s.y += s.speed * starSpeedMult * dt;
+            if (s.y > this.height) {
+                s.y = 0;
+                s.x = Math.random() * this.width;
+            }
+        }
+
+        if (this.screenShake > 0) {
+            this.screenShake = Math.max(0, this.screenShake - dt * 25);
+        }
+
+        if (this.state === 'PAUSED' || this.state === 'START' || this.state === 'GAME_OVER') {
+            return;
+        }
+
+        if (this.state === 'STAGE_INTRO') {
+            this.stateTimer -= dt;
+            this.updateEnemiesFormationOnly(dt);
+            if (this.stateTimer <= 0) {
+                this.state = 'PLAYING';
+                this.updateHeaderBadges();
+            }
+            return;
+        }
+
+        // --- STATE: PLAYING ---
+        this.updatePlayer(dt);
+        this.updateBullets(dt);
+        this.updateEnemies(dt);
+        this.updateParticles(dt);
+        this.updateFloatingTexts(dt);
+
+        // Check stage clear
+        if (this.enemies.length === 0) {
+            this.setupStage(this.stage + 1);
+        }
+    }
+
+    updatePlayer(dt) {
+        if (this.player.invulnTimer > 0) {
+            this.player.invulnTimer -= dt;
+        }
+        if (this.player.captured) {
+            return;
+        }
+
+        const { vx, vy } = this.getMovementVector();
+        this.player.x += vx * this.player.speed * dt;
+        this.player.y += vy * this.player.speed * dt;
+
+        // Clamp player to lower half of screen (from mid-screen down to bottom)
+        const marginX = this.player.isDual ? 30 : 18;
+        const minY = this.height * 0.48;
+        const maxY = this.height - 28;
+
+        this.player.x = Math.max(marginX, Math.min(this.width - marginX, this.player.x));
+        this.player.y = Math.max(minY, Math.min(maxY, this.player.y));
+
+        // Continuous Rapid Fire when holding Space or Z
+        if (this.player.fireCooldown > 0) {
+            this.player.fireCooldown -= dt;
+        }
+        if ((this.keys['Space'] || this.keys['KeyZ']) && this.player.fireCooldown <= 0) {
+            this.firePlayerWeapon();
+        }
+    }
+
+    damagePlayer() {
+        if (this.player.invulnTimer > 0 || this.player.captured) return;
+
+        this.screenShake = 10;
+        this.audio.playExplosion(true);
+
+        if (this.player.isDual) {
+            // Lose one ship from Dual Fighter instead of full life
+            this.player.isDual = false;
+            this.player.invulnTimer = 2.0;
+            this.spawnExplosion(this.player.x + 12, this.player.y, '#00f0ff', 22);
+            this.addFloatingText('SINGLE FIGHTER', this.player.x, this.player.y - 20, '#ff2a55');
+            return;
+        }
+
+        this.spawnExplosion(this.player.x, this.player.y, '#ff2a55', 34);
+        this.lives--;
+
+        if (this.lives <= 0) {
+            this.lives = 0;
+            this.state = 'GAME_OVER';
+            this.updateHeaderBadges();
+            this.audio.playGameOver();
+        } else {
+            this.resetPlayerPosition();
+        }
+    }
+
+    updateBullets(dt) {
+        // Player bullets
+        for (let i = this.bullets.length - 1; i >= 0; i--) {
+            const b = this.bullets[i];
+            b.y += b.vy * dt;
+            if (b.y < -15) {
+                this.bullets.splice(i, 1);
+            }
+        }
+
+        // Enemy bullets
+        for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
+            const eb = this.enemyBullets[i];
+            eb.x += eb.vx * dt;
+            eb.y += eb.vy * dt;
+
+            if (eb.y > this.height + 20 || eb.x < -20 || eb.x > this.width + 20) {
+                this.enemyBullets.splice(i, 1);
+                continue;
+            }
+
+            // Collision with player
+            const hitRadius = this.player.isDual ? 22 : 12;
+            if (Math.hypot(eb.x - this.player.x, eb.y - this.player.y) < hitRadius) {
+                this.enemyBullets.splice(i, 1);
+                this.damagePlayer();
+            }
+        }
+    }
+
+    updateEnemiesFormationOnly(dt) {
+        this.formationTick += dt * 2.2;
+        const swayX = Math.sin(this.formationTick) * 18;
+
+        for (const e of this.enemies) {
+            const targetX = e.homeX + swayX;
+            const targetY = e.homeY;
+            e.x += (targetX - e.x) * Math.min(1, dt * 4.5);
+            e.y += (targetY - e.y) * Math.min(1, dt * 4.5);
+            e.angle = 0;
+        }
+    }
+
+    updateEnemies(dt) {
+        this.formationTick += dt * (this.stage >= 10 ? 3.2 : 2.2);
+        const swayX = Math.sin(this.formationTick) * 20;
+        const breatheY = Math.cos(this.formationTick * 2) * 3.5;
+
+        // Progressive Dive Frequency & Squad Coordination
+        const isHardcore = this.stage >= 10;
+        this.diveCooldown -= dt;
+        if (this.diveCooldown <= 0) {
+            const readyEnemies = this.enemies.filter(e => e.mode === 'FORMATION');
+            if (readyEnemies.length > 0) {
+                const squadSize = isHardcore
+                    ? Math.min(readyEnemies.length, 3 + Math.floor((this.stage - 10) / 3))
+                    : Math.min(readyEnemies.length, this.stage >= 5 ? 2 : 1);
+
+                for (let s = 0; s < squadSize; s++) {
+                    const idx = Math.floor(Math.random() * readyEnemies.length);
+                    const diver = readyEnemies.splice(idx, 1)[0];
+                    this.launchEnemyDive(diver);
+                }
+            }
+            const baseInterval = isHardcore
+                ? Math.max(0.55, 1.15 - (this.stage - 10) * 0.06)
+                : Math.max(1.1, 2.5 - this.stage * 0.14);
+            this.diveCooldown = baseInterval;
+        }
+
+        // Update each enemy
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const e = this.enemies[i];
+            const formX = e.homeX + swayX;
+            const formY = e.homeY + breatheY;
+
+            if (e.mode === 'ENTERING' || e.mode === 'RETURNING') {
+                e.x += (formX - e.x) * Math.min(1, dt * 5);
+                e.y += (formY - e.y) * Math.min(1, dt * 5);
+                e.angle = 0;
+                if (Math.hypot(formX - e.x, formY - e.y) < 4) {
+                    e.mode = 'FORMATION';
+                }
+            } else if (e.mode === 'FORMATION') {
+                e.x = formX;
+                e.y = formY;
+                e.angle = 0;
+            } else if (e.mode === 'DIVING') {
+                this.updateDivingEnemy(e, dt);
+            } else if (e.mode === 'BEAMING') {
+                this.updateBeamingEnemy(e, dt);
+            }
+
+            // Sync captured fighter escort above Boss Galaga
+            if (e.hasCapturedShip && this.capturedShip) {
+                this.capturedShip.x = e.x;
+                this.capturedShip.y = e.y - 24;
+            }
+
+            // Player Bullet vs Enemy Collision
+            let destroyed = false;
+            for (let bIdx = this.bullets.length - 1; bIdx >= 0; bIdx--) {
+                const b = this.bullets[bIdx];
+                if (Math.hypot(b.x - e.x, b.y - e.y) < e.radius + 7) {
+                    this.bullets.splice(bIdx, 1);
+                    e.hp--;
+
+                    if (e.hp > 0) {
+                        // Boss Galaga damaged (turns from Green to Blue)
+                        this.audio.playBossHit();
+                        this.spawnExplosion(e.x, e.y, '#22c55e', 8);
+                    } else {
+                        destroyed = true;
+                        this.handleEnemyDestroyed(e, i);
+                    }
+                    break;
+                }
+            }
+
+            if (destroyed) continue;
+
+            // Enemy Body vs Player Collision
+            const playerHitDist = (this.player.isDual ? 22 : 12) + e.radius - 2;
+            if (Math.hypot(e.x - this.player.x, e.y - this.player.y) < playerHitDist) {
+                this.damagePlayer();
+                if (e.type !== 'boss') {
+                    this.enemies.splice(i, 1);
+                    this.spawnExplosion(e.x, e.y, '#ffd500', 14);
+                }
+            }
+        }
+    }
+
+    launchEnemyDive(e) {
+        // Boss Galaga can deploy Tractor Beam when player is single & no ship is currently captured
+        if (
+            e.type === 'boss' &&
+            !this.player.isDual &&
+            !this.capturedShip &&
+            !this.player.captured &&
+            this.stage >= 2 &&
+            Math.random() < 0.35
+        ) {
+            e.mode = 'BEAMING';
+            e.beamTimer = 0;
+            e.diveStartX = e.x;
+            e.diveStartY = e.y;
+            e.diveTargetX = Math.max(70, Math.min(this.width - 70, this.player.x));
+            this.audio.playTractorBeam();
+            return;
+        }
+
+        e.mode = 'DIVING';
+        e.diveT = 0;
+        e.diveStartX = e.x;
+        e.diveStartY = e.y;
+        e.diveTargetX = this.player.x;
+        e.diveCurveDir = e.x < this.width / 2 ? 1 : -1;
+        e.hasShot = false;
+        e.shotCount = 0;
+        this.audio.playDive();
+    }
+
+    updateDivingEnemy(e, dt) {
+        const isHardcore = this.stage >= 10;
+        const speedMult = isHardcore
+            ? 1.15 + Math.min(0.55, (this.stage - 10) * 0.06)
+            : 0.78 + this.stage * 0.035;
+
+        e.diveT += dt * speedMult;
+
+        const prevX = e.x;
+        const prevY = e.y;
+
+        // Trajectory: Classic curve in Stages 1-9; fast S-curve spiral in Stage 10+
+        const progress = e.diveT;
+        const spiralAmp = isHardcore ? 95 : 58;
+        const spiralFreq = isHardcore ? Math.PI * 3.2 : Math.PI * 2.0;
+
+        const targetLerpX = e.diveStartX + (e.diveTargetX - e.diveStartX) * Math.min(1, progress * 0.85);
+        e.x = targetLerpX + Math.sin(progress * spiralFreq) * spiralAmp * e.diveCurveDir;
+        e.x = Math.max(22, Math.min(this.width - 22, e.x));
+        e.y = e.diveStartY + progress * (this.height - e.diveStartY + 55);
+
+        // Face direction of movement
+        e.angle = Math.atan2(e.y - prevY, e.x - prevX) - Math.PI / 2;
+
+        // Firing logic during dive
+        if (!e.hasShot && e.y > 170) {
+            e.hasShot = true;
+            this.fireEnemyVolley(e, isHardcore);
+        }
+        // Stage 10+ double volley attack
+        if (isHardcore && e.shotCount === 1 && e.y > 310) {
+            this.fireEnemyVolley(e, true);
+        }
+
+        // Wrap back to top formation once off bottom screen
+        if (e.y > this.height + 32) {
+            e.y = -25;
+            e.mode = 'RETURNING';
+        }
+    }
+
+    fireEnemyVolley(e, isHardcore) {
+        e.shotCount++;
+        const bulletSpeed = isHardcore
+            ? 275 + Math.min(120, (this.stage - 10) * 12)
+            : 185 + this.stage * 9;
+
+        const aimAngle = Math.atan2(this.player.y - e.y, this.player.x - e.x);
+
+        if (isHardcore && (e.type === 'boss' || e.type === 'butterfly')) {
+            // 3-way fan spread shot in Stage 10+ Hardcore Mode
+            const spread = [-0.24, 0, 0.24];
+            for (const offset of spread) {
+                const a = aimAngle + offset;
+                this.enemyBullets.push({
+                    x: e.x,
+                    y: e.y + 10,
+                    vx: Math.cos(a) * bulletSpeed,
+                    vy: Math.sin(a) * bulletSpeed
+                });
+            }
+        } else {
+            // Aimed single shot
+            this.enemyBullets.push({
+                x: e.x,
+                y: e.y + 10,
+                vx: Math.cos(aimAngle) * bulletSpeed,
+                vy: Math.sin(aimAngle) * bulletSpeed
+            });
+        }
+    }
+
+    updateBeamingEnemy(e, dt) {
+        e.beamTimer += dt;
+        const hoverY = this.height - 175;
+
+        if (e.beamTimer < 1.0) {
+            // Descend to tractor beam deployment altitude
+            e.x += (e.diveTargetX - e.x) * Math.min(1, dt * 4);
+            e.y += (hoverY - e.y) * Math.min(1, dt * 4);
+            e.angle = 0;
+        } else if (e.beamTimer < 3.1) {
+            // Active Tractor Beam cone
+            e.angle = 0;
+            if (
+                !this.player.captured &&
+                !this.player.isDual &&
+                this.player.invulnTimer <= 0 &&
+                Math.abs(this.player.x - e.x) < 28 &&
+                this.player.y > e.y &&
+                this.player.y < e.y + 165
+            ) {
+                // Capture player's fighter!
+                this.player.captured = true;
+                e.hasCapturedShip = true;
+                this.capturedShip = {
+                    x: this.player.x,
+                    y: this.player.y,
+                    bossRef: e
+                };
+                this.audio.playTractorBeam();
+                this.addFloatingText('FIGHTER CAPTURED!', e.x, e.y - 24, '#ff2a55');
+            }
+        } else {
+            // Retract beam and return to formation
+            if (this.player.captured && e.hasCapturedShip) {
+                this.lives--;
+                if (this.lives <= 0) {
+                    this.lives = 0;
+                    this.state = 'GAME_OVER';
+                    this.updateHeaderBadges();
+                    this.audio.playGameOver();
+                    return;
+                } else {
+                    this.resetPlayerPosition();
+                }
+            }
+            e.mode = 'RETURNING';
+        }
+    }
+
+    handleEnemyDestroyed(e, index) {
+        this.enemies.splice(index, 1);
+
+        const isDiving = e.mode === 'DIVING' || e.mode === 'BEAMING';
+        let pts = 50;
+        let color = '#ffd500';
+
+        if (e.type === 'bee') {
+            pts = isDiving ? 100 : 50;
+            color = '#ffd500';
+        } else if (e.type === 'butterfly') {
+            pts = isDiving ? 160 : 80;
+            color = '#ff2a55';
+        } else if (e.type === 'boss') {
+            pts = isDiving ? 400 : 150;
+            color = '#22c55e';
+        }
+
+        this.audio.playExplosion(e.type === 'boss');
+        this.spawnExplosion(e.x, e.y, color, e.type === 'boss' ? 28 : 16);
+        this.addScore(pts, e.x, e.y, color);
+
+        // Check if this Boss Galaga held a captured fighter
+        if (e.hasCapturedShip && this.capturedShip) {
+            this.capturedShip = null;
+            if (isDiving) {
+                // Rescue successful! Merge into Dual Fighter!
+                this.player.isDual = true;
+                this.audio.playRescue();
+                this.addScore(1000, this.player.x, this.player.y - 32, '#00f0ff');
+                this.addFloatingText('DUAL FIGHTER!', this.player.x, this.player.y - 50, '#00f0ff');
+            } else {
+                // Shot down while parked in formation
+                this.audio.playExplosion(true);
+                this.spawnExplosion(e.x, e.y - 24, '#ff2a55', 22);
+                this.addFloatingText('CAPTURED SHIP LOST', e.x, e.y - 28, '#ff2a55');
+            }
+        }
+    }
+
+    updateParticles(dt) {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt;
+            if (p.life <= 0) {
+                this.particles.splice(i, 1);
+            }
+        }
+    }
+
+    updateFloatingTexts(dt) {
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            const ft = this.floatingTexts[i];
+            ft.y -= 32 * dt;
+            ft.life -= dt;
+            if (ft.life <= 0) {
+                this.floatingTexts.splice(i, 1);
+            }
+        }
+    }
+
+    /**
+     * ========================================================================
+     * 5. RENDERING PIPELINE
+     * ========================================================================
+     */
+    render() {
+        const ctx = this.ctx;
+        ctx.save();
+
+        // Screen shake offset on explosions
+        if (this.screenShake > 0) {
+            const sx = (Math.random() - 0.5) * this.screenShake;
+            const sy = (Math.random() - 0.5) * this.screenShake;
+            ctx.translate(sx, sy);
+        }
+
+        // Background Space Fill (shifts to deep crimson/violet in Stage 10+ Hardcore Mode)
+        const isHardcore = this.stage >= 10 && this.state !== 'START';
+        if (isHardcore) {
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, this.height);
+            bgGrad.addColorStop(0, '#1e0512');
+            bgGrad.addColorStop(0.5, '#13041c');
+            bgGrad.addColorStop(1, '#08020d');
+            ctx.fillStyle = bgGrad;
+        } else {
+            ctx.fillStyle = '#04060c';
+        }
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // Starfield Parallax
+        for (const s of this.stars) {
+            const twinkle = 0.45 + 0.55 * Math.sin(this.globalTick * 6 + s.blinkOffset);
+            ctx.globalAlpha = twinkle;
+            ctx.fillStyle = isHardcore && Math.random() < 0.35 ? '#ff4d6d' : s.color;
+            ctx.fillRect(Math.floor(s.x), Math.floor(s.y), s.size, s.size);
+        }
+        ctx.globalAlpha = 1;
+
+        if (this.state === 'START') {
+            this.renderStartScreen(ctx);
+            ctx.restore();
+            return;
+        }
+
+        // Render Tractor Beams (behind ships)
+        for (const e of this.enemies) {
+            if (e.mode === 'BEAMING' && e.beamTimer >= 1.0 && e.beamTimer <= 3.1) {
+                this.renderTractorBeam(ctx, e);
+            }
+        }
+
+        // Render Enemies
+        const animFrame = Math.floor(this.globalTick * 5) % 2;
+        for (const e of this.enemies) {
+            let matrix = SPRITES.bee1;
+            let palette = PALETTES.bee;
+
+            if (e.type === 'bee') {
+                matrix = animFrame === 0 ? SPRITES.bee1 : SPRITES.bee2;
+                palette = PALETTES.bee;
+            } else if (e.type === 'butterfly') {
+                matrix = animFrame === 0 ? SPRITES.butterfly1 : SPRITES.butterfly2;
+                palette = PALETTES.butterfly;
+            } else if (e.type === 'boss') {
+                matrix = animFrame === 0 ? SPRITES.boss1 : SPRITES.boss2;
+                palette = e.hp >= 2 ? PALETTES.bossGreen : PALETTES.bossBlue;
+            }
+
+            drawPixelSprite(ctx, matrix, palette, e.x, e.y, 2.4, e.angle);
+        }
+
+        // Render Captured Red Fighter above Boss
+        if (this.capturedShip) {
+            drawPixelSprite(
+                ctx,
+                SPRITES.player,
+                PALETTES.capturedPlayer,
+                this.capturedShip.x,
+                this.capturedShip.y,
+                2.0,
+                Math.PI
+            );
+        }
+
+        // Render Player Ship (blinks during invulnerability)
+        if (!this.player.captured && this.state !== 'GAME_OVER') {
+            const visible = this.player.invulnTimer <= 0 || Math.floor(this.globalTick * 16) % 2 === 0;
+            if (visible) {
+                if (this.player.isDual) {
+                    drawPixelSprite(ctx, SPRITES.player, PALETTES.player, this.player.x - 13, this.player.y, 2.2);
+                    drawPixelSprite(ctx, SPRITES.player, PALETTES.player, this.player.x + 13, this.player.y, 2.2);
+                } else {
+                    drawPixelSprite(ctx, SPRITES.player, PALETTES.player, this.player.x, this.player.y, 2.3);
+                }
+            }
+        }
+
+        // Render Player Lasers
+        for (const b of this.bullets) {
+            ctx.fillStyle = '#00f0ff';
+            ctx.fillRect(Math.floor(b.x - 2), Math.floor(b.y - 8), 4, 14);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(Math.floor(b.x - 1), Math.floor(b.y - 6), 2, 10);
+        }
+
+        // Render Enemy Bullets
+        for (const eb of this.enemyBullets) {
+            ctx.fillStyle = isHardcore ? '#ff2a55' : '#ffd500';
+            ctx.beginPath();
+            ctx.arc(eb.x, eb.y, 3.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(eb.x, eb.y, 1.6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Render Explosion Particles
+        for (const p of this.particles) {
+            ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(Math.floor(p.x), Math.floor(p.y), Math.ceil(p.size), Math.ceil(p.size));
+        }
+        ctx.globalAlpha = 1;
+
+        // Render Floating Score Popups
+        ctx.textAlign = 'center';
+        ctx.font = '9px "Press Start 2P"';
+        for (const ft of this.floatingTexts) {
+            ctx.globalAlpha = Math.min(1, ft.life * 1.4);
+            ctx.fillStyle = ft.color;
+            ctx.fillText(ft.text, Math.floor(ft.x), Math.floor(ft.y));
+        }
+        ctx.globalAlpha = 1;
+
+        // Render Top & Bottom In-Canvas HUD
+        this.renderHUD(ctx);
+
+        // Render Overlays (Stage Intro, Paused, Game Over)
+        if (this.state === 'STAGE_INTRO') {
+            this.renderStageBanner(ctx);
+        } else if (this.state === 'PAUSED') {
+            this.renderPauseOverlay(ctx);
+        } else if (this.state === 'GAME_OVER') {
+            this.renderGameOverOverlay(ctx);
+        }
+
+        ctx.restore();
+    }
+
+    renderTractorBeam(ctx, boss) {
+        const beamHeight = 165;
+        const pulse = Math.sin(this.globalTick * 24) * 6;
+        const grad = ctx.createLinearGradient(boss.x, boss.y + 10, boss.x, boss.y + beamHeight);
+        grad.addColorStop(0, 'rgba(0, 240, 255, 0.55)');
+        grad.addColorStop(0.5, 'rgba(59, 130, 246, 0.32)');
+        grad.addColorStop(1, 'rgba(255, 42, 85, 0.08)');
+
+        ctx.save();
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(boss.x - 10, boss.y + 10);
+        ctx.lineTo(boss.x + 10, boss.y + 10);
+        ctx.lineTo(boss.x + 38 + pulse, boss.y + beamHeight);
+        ctx.lineTo(boss.x - 38 - pulse, boss.y + beamHeight);
+        ctx.closePath();
+        ctx.fill();
+
+        // Horizontal energy rings inside beam
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.7)';
+        ctx.lineWidth = 2;
+        const ringY = boss.y + 14 + ((this.globalTick * 180) % (beamHeight - 14));
+        const ratio = (ringY - boss.y) / beamHeight;
+        const halfW = 10 + ratio * 28;
+        ctx.beginPath();
+        ctx.moveTo(boss.x - halfW, ringY);
+        ctx.lineTo(boss.x + halfW, ringY);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    renderHUD(ctx) {
+        ctx.textBaseline = 'top';
+
+        // 1UP Score
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#ff2a55';
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillText('1UP', 14, 10);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(String(this.score).padStart(6, '0'), 14, 24);
+
+        // HIGH SCORE
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ff2a55';
+        ctx.fillText('HIGH SCORE', this.width / 2, 10);
+        ctx.fillStyle = '#ffd500';
+        ctx.fillText(String(this.highScore).padStart(6, '0'), this.width / 2, 24);
+
+        // STAGE Badge
+        ctx.textAlign = 'right';
+        const isHardcore = this.stage >= 10;
+        ctx.fillStyle = isHardcore ? '#ff2a55' : '#00f0ff';
+        ctx.fillText(isHardcore ? `HELL ${this.stage}` : `STAGE ${this.stage}`, this.width - 14, 10);
+
+        // SFX indicator inside canvas HUD
+        ctx.fillStyle = this.audio.enabled ? '#22c55e' : '#64748b';
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText(this.audio.enabled ? 'SFX ON' : 'SFX OFF', this.width - 14, 25);
+
+        // Remaining Lives Icons (bottom-left)
+        const displayLives = Math.max(0, this.lives - 1);
+        for (let i = 0; i < Math.min(displayLives, 5); i++) {
+            drawPixelSprite(ctx, SPRITES.player, PALETTES.player, 22 + i * 24, this.height - 14, 1.35);
+        }
+
+        // Stage Flag Badges (bottom-right)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = isHardcore ? '#ff2a55' : '#ffd500';
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText(`FLAG ${this.stage}`, this.width - 14, this.height - 18);
+    }
+
+    renderStartScreen(ctx) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // High Score at top
+        ctx.fillStyle = '#ff2a55';
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillText('HIGH SCORE', this.width / 2, 26);
+        ctx.fillStyle = '#ffd500';
+        ctx.fillText(String(this.highScore).padStart(6, '0'), this.width / 2, 44);
+
+        // Main Logo
+        ctx.fillStyle = '#00f0ff';
+        ctx.font = '32px "Press Start 2P"';
+        ctx.fillText('GALAGA', this.width / 2, 128);
+        ctx.fillStyle = '#ff2a55';
+        ctx.font = '14px "Press Start 2P"';
+        ctx.fillText('DX ARCADE EDITION', this.width / 2, 162);
+
+        // Enemy Cast & Points Table
+        const cast = [
+            { sprite: SPRITES.boss1, pal: PALETTES.bossGreen, label: 'BOSS GALAGA   150 / 400 PTS', y: 225 },
+            { sprite: SPRITES.butterfly1, pal: PALETTES.butterfly, label: 'BUTTERFLY      80 / 160 PTS', y: 268 },
+            { sprite: SPRITES.bee1, pal: PALETTES.bee, label: 'BEE ESCORT     50 / 100 PTS', y: 311 }
+        ];
+
+        ctx.font = '9px "Press Start 2P"';
+        for (const item of cast) {
+            drawPixelSprite(ctx, item.sprite, item.pal, 86, item.y, 2.2);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'left';
+            ctx.fillText(item.label, 118, item.y + 2);
+        }
+
+        // Difficulty & Dual Fighter Info Box
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffd500';
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText('RESCUE CAPTURED SHIP = DUAL FIGHTER!', this.width / 2, 366);
+        ctx.fillStyle = '#ff2a55';
+        ctx.fillText('STAGE 10+ = HARDCORE HELL MODE!', this.width / 2, 390);
+
+        // Blinking Start Prompt
+        if (Math.floor(this.globalTick * 2.6) % 2 === 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px "Press Start 2P"';
+            ctx.fillText('PRESS SPACE OR ENTER', this.width / 2, 465);
+        }
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '9px "Press Start 2P"';
+        ctx.fillText('1 PLAYER - KEYBOARD MODE', this.width / 2, 502);
+    }
+
+    renderStageBanner(ctx) {
+        const isHardcore = this.stage >= 10;
+        ctx.save();
+        ctx.fillStyle = 'rgba(4, 6, 12, 0.78)';
+        ctx.fillRect(0, this.height / 2 - 58, this.width, 116);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        if (isHardcore) {
+            ctx.fillStyle = '#ff2a55';
+            ctx.font = '14px "Press Start 2P"';
+            ctx.fillText(`STAGE ${this.stage}`, this.width / 2, this.height / 2 - 22);
+            ctx.fillStyle = '#ffd500';
+            ctx.font = '11px "Press Start 2P"';
+            ctx.fillText('STAGE 10+ HARDCORE MODE', this.width / 2, this.height / 2 + 12);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '8px "Press Start 2P"';
+            ctx.fillText('WARNING: EXTREME ENEMY ASSAULT!', this.width / 2, this.height / 2 + 36);
+        } else {
+            ctx.fillStyle = '#00f0ff';
+            ctx.font = '16px "Press Start 2P"';
+            ctx.fillText(`STAGE ${this.stage}`, this.width / 2, this.height / 2 - 12);
+            ctx.fillStyle = '#ffd500';
+            ctx.font = '10px "Press Start 2P"';
+            ctx.fillText('PLAYER 1 READY', this.width / 2, this.height / 2 + 20);
+        }
+        ctx.restore();
+    }
+
+    renderPauseOverlay(ctx) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(4, 6, 12, 0.78)';
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffd500';
+        ctx.font = '22px "Press Start 2P"';
+        ctx.fillText('PAUSED', this.width / 2, this.height / 2 - 14);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '9px "Press Start 2P"';
+        ctx.fillText('PRESS [P] TO RESUME', this.width / 2, this.height / 2 + 22);
+        ctx.restore();
+    }
+
+    renderGameOverOverlay(ctx) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(4, 6, 12, 0.84)';
+        ctx.fillRect(0, this.height / 2 - 95, this.width, 190);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.fillStyle = '#ff2a55';
+        ctx.font = '22px "Press Start 2P"';
+        ctx.fillText('GAME OVER', this.width / 2, this.height / 2 - 48);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '11px "Press Start 2P"';
+        ctx.fillText(`FINAL SCORE: ${this.score}`, this.width / 2, this.height / 2 - 6);
+
+        ctx.fillStyle = '#ffd500';
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillText(`REACHED STAGE ${this.stage}`, this.width / 2, this.height / 2 + 24);
+
+        if (Math.floor(this.globalTick * 2.6) % 2 === 0) {
+            ctx.fillStyle = '#00f0ff';
+            ctx.font = '10px "Press Start 2P"';
+            ctx.fillText('PRESS SPACE OR ENTER TO RESTART', this.width / 2, this.height / 2 + 64);
+        }
+        ctx.restore();
+    }
+
+    loop(now) {
+        const dt = Math.min(0.05, (now - this.lastTime) / 1000);
+        this.lastTime = now;
+
+        this.update(dt);
+        this.render();
+
+        requestAnimationFrame((t) => this.loop(t));
+    }
+}
+
+window.addEventListener('load', () => {
+    window.galagaGame = new GalagaGame();
+});
+</script>
+</body>
+</html>
